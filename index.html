@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet-src.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-geosearch@3.0.0/dist/geosearch.css" />
+    <script src="https://unpkg.com/leaflet-geosearch@3.0.0/dist/geosearch.umd.js"></script>
+  <style>
+    #map {
+      height: 500px;
+      width: 80%;
+    }
+  </style>
+  </head>
+  <body>
+
+     <div id="map"></div>
+
+     <script>
+        const mymap = L.map('map').setView([22.35, 114.1], 11);
+
+        const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+        const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+
+        var tiles = L.tileLayer(tileUrl,{attribution});
+        tiles.addTo(mymap);
+        listOfAddresses = []
+        $(document).ready(function(){
+
+          const Url="https://api.data.gov.hk/v2/filter?q=%7B%22resource%22%3A%22http%3A%2F%2Fwww.chp.gov.hk%2Ffiles%2Fmisc%2Fbuilding_list_eng.csv%22%2C%22section%22%3A1%2C%22format%22%3A%22json%22%7D";
+          $.ajax({
+            url: Url,
+            type:"GET",
+            success: function(result){
+              for (var i = 0; i < result.length; i++){
+                address = result[i]["Building name"];
+                listOfAddresses.push(address)
+              }
+            },
+            error:function(error){
+              console.log("error");
+            }
+          })
+        })
+
+        $(document).ajaxStop(function() {
+          for (var i = 0; i<listOfAddresses.length; i++){
+            if (listOfAddresses[i].indexOf(",") != -1){
+              listOfAddresses[i] = listOfAddresses[i].substring(listOfAddresses[i].indexOf(",")+2, listOfAddresses[i].length);
+            }
+          }
+            var i= 0;
+            function addAddresses(){
+              setTimeout(function(){
+                console.log(listOfAddresses[i]);
+                i++;
+                addr_search(listOfAddresses[i]);
+                if (i<listOfAddresses.length){
+                  addAddresses()
+                }
+              }, 1000)
+
+            }
+            addAddresses();
+        });
+
+        function addr_search(address){
+
+           var xmlhttp = new XMLHttpRequest();
+           var url = "https://nominatim.openstreetmap.org/search?format=json&limit=3&q=" + address;
+           xmlhttp.onreadystatechange = function()
+           {
+             if (this.readyState == 4 && this.status == 200)
+             {
+              var myArr = JSON.parse(this.responseText);
+              console.log(myArr)
+              addMarker(myArr[0]["lat"], myArr[0]["lon"])
+             }
+           };
+           xmlhttp.open("GET", url, true);
+           xmlhttp.send();
+        }
+
+      function addMarker(lat, long){
+          var marker = L.marker([lat, long]).addTo(mymap);
+      }
+
+     </script>
+
+  </body>
+</html>
